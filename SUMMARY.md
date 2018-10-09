@@ -1,6 +1,6 @@
 # Table of contents
 
-* [Initial page](README.md)
+* [App Development with Swift](README.md)
 
 ## 3.9.2
 
