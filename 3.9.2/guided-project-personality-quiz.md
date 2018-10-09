@@ -611,7 +611,7 @@ var answersChosen: [Answer] = []
     }
  
     nextQuestion()
-}
+} 
 ```
 
 「For a ranged response question, you'll read the current position of the UISlider and use that value to determine which answer to add to the collection. Control-drag from the Submit Answer button to code, and create an action with the name "rangedAnswerButtonPressed." Again, change the Arguments attribute to None.」
@@ -620,19 +620,43 @@ var answersChosen: [Answer] = []
 
 「Next, create an IBOutlet for the UISlider. Control-drag from the slider in the document outline to code and give it a name. As you did in earlier steps, place the code for this outlet near the label variables associated with the ranged response stack view. 」
 
-@@
+
+
+```swift
+ @IBOutlet weak var rangedSlider: UISlider!
+```
 
 「Take a moment to think about how you can use the slider's value to correspond to four different answers. A slider's value ranges from 0 to 1, so a value between 0 and 0.25 could correspond to the first answer, and an answer between .75 and 1 could correspond to the final answer. 」
 
 「To convert a slider value to an array's index, use the equation index = slider value \* \(number of answers - 1\) rounded to the nearest integer. This results in the following method implementation for rangedAnswerButtonPressed: 」
 
-@@
+```swift
+@IBAction func rangedAnswerButtonPressed() {
+    let currentAnswers = questions[questionIndex].answers
+    let index = Int(round(rangedSlider.value *
+      Float(currentAnswers.count - 1)))
+ 
+    answersChosen.append(currentAnswers[index])
+ 
+    nextQuestion()
+}
+```
 
 ## Respond to Answered Questions
 
 「You may have noticed that each IBAction ends with a call to nextQuestion. To create this method, you'll increment the value of questionIndex by 1, then determine if there are any remaining questions. If there are, you'll call updateUI\(\) to update the title and display the proper stack view. The method will use the new value of questionIndex to display the next question. If there are no questions remaining, it's time to present the results—using the ResultsSegue that you created earlier.」
 
-@@
+```swift
+func nextQuestion() {
+    questionIndex += 1
+ 
+    if questionIndex < questions.count {
+        updateUI()
+    } else {
+      performSegue(withIdentifier: "ResultsSegue", sender: nil)
+    }
+}
+```
 
 「Build and run your app, then test each of your input controls. Do you notice any bugs? One obvious issue is that the interfaces for multiple-answer and ranged responses retain the values from the previous question of the same type. For example, if the player has moved a slider all the way to the left for one question, the next question that uses a slider will start with the slider all the way to the left. 」
 
@@ -640,7 +664,27 @@ var answersChosen: [Answer] = []
 
 「Update the updateMultipleStack\(using:\) and updateRangedStack\(using:\) methods to include code that resets the positions of their controls. 」
 
-@@
+
+
+```swift
+func updateMultipleStack(using answers: [Answer]) {
+    multipleStackView.isHidden = false
+    multiSwitch1.isOn = false
+    multiSwitch2.isOn = false
+    multiSwitch3.isOn = false
+    multiSwitch4.isOn = false
+    multiLabel1.text = answers[0].text
+    multiLabel2.text = answers[1].text
+    multiLabel3.text = answers[2].text
+    multiLabel4.text = answers[3].text
+}
+func updateRangedStack(using answers: [Answer]) {
+    rangedStackView.isHidden = false
+    rangedSlider.setValue(0.5, animated: false)
+    rangedLabel1.text = answers.first?.text
+    rangedLabel2.text = answers.last?.text
+}
+```
 
 ## Part Five—Calculate and Display Results 
 
@@ -652,15 +696,33 @@ var answersChosen: [Answer] = []
 
 「Add a property to the ResultsViewController that can be set in the prepare\(for segue:sender:\) method in QuestionViewController. This property will need to be an implicitly unwrapped optional so that the view controller can be loaded from the storyboard even if the property doesn't have a value. 」
 
-@@
+```swift
+var responses: [Answer]!
+```
 
 「Now declare prepare\(for segue:sender:\) in QuestionViewController if you haven't already.Before you pass data in the prepare\(for segue:sender:\) method, it would be good to verify that you're executing the expected segue. You can check by comparing the segue's identifier property to ResultsSegue. If the two are equal, you can be sure you're going to display the ResultsViewController. 」
 
-@@
+```swift
+override func prepare(for segue: UIStoryboardSegue, sender:
+  Any?) {
+    if segue.identifier == "ResultsSegue" {
+ 
+    }
+} 
+```
 
 「Next, you'll have to downcast the destination property from a UIViewController to a ResultsViewController so that you can access the responses property you just added. 」
 
-@@
+```swift
+override func prepare(for segue: UIStoryboardSegue, sender:
+  Any?) {
+    if segue.identifier == "ResultsSegue" {
+        let resultsViewController = segue.destination as!
+          ResultsViewController
+        resultsViewController.responses = answersChosen
+    }
+} 
+```
 
 「If you build and run your app, try setting a breakpoint on this last line. Inspect the responses property of resultsViewController to see that it's currently nil. Step over the line, and you'll see the property update to reflect the answers you gathered while taking the quiz. 」
 
@@ -670,89 +732,139 @@ var answersChosen: [Answer] = []
 
 「How can you tally up the results? You'll need to loop through each of the Answer structs in the responses property and calculate which type was most common in the collection. A good solution might be the dictionary data model, where the key is the response type and the value is the number of times it's been selected as an answer. For example, if the player gave two answers that corresponded closely to dog and only one for each other animal, the dictionary would look like the following: 」
 
-@@
+```swift
+{
+  cat : 1,
+  dog : 2,
+  rabbit : 1,
+  turtle : 1
+} 
+```
 
 「To begin, declare a method called calculatePesonalityResult that you can call in viewDidLoad\(\). Within that method, create an empty dictionary that will hold the frequency of each response, as in the code above. For the "Which animal are you?" quiz, you could use the following code:」
 
-@@
+```swift
+override func viewDidLoad() {
+    super.viewDidLoad()
+    calculatePersonalityResult()
+}
+ 
+func calculatePersonalityResult() {
+  var frequencyOfAnswers: [AnimalType: Int] = [:]
+}
+```
 
 「When calculating the result, you don't need the entire Answer struct; you only care about the type property of each Answer. So you can create a new, simplified collection by mapping each Answer to its corresponding type. Add the following line to calculatePersonalityResult: 」
 
-@@
+```swift
+let responseTypes = responses.map { $0.type }
+```
 
 「Now it's time to iterate through responseTypes and calculate the total. Imagine the first response corresponded to a turtle. The dictionary was empty initially, but after adding a turtle response, it will look like the following:」
 
-@@
+```swift
+{
+  turtle: 1
+} 
+```
 
 「What if the second response also corresponds to a turtle? Now the dictionary will look like this: 」
 
-@@
+```swift
+{
+  turtle: 2
+}
+```
 
 「What's happening? If the key already exists in the dictionary, the current value is incremented by 1; otherwise, the key is added to the dictionary and its value is set to 1. 」
 
 「Here's the code that iterates through the collection, and adds or updates the key/value pair in the dictionary. 」
 
-@@
+```swift
+for response in responseTypes {
+    frequencyOfAnswers[response] = (frequencyOfAnswers[response]
+?? 0) + 1
+}
+```
 
 ### Determine the Most Frequent Answers 
 
 「Now that you have a dictionary that knows the frequency of each response, it's possible to determine which value is the largest. You can use the Swift sorted\(by:\) method on a dictionary to place each key/value pair into an array, sorting the value properties in descending order. 」
 
-@@
+```swift
+let frequentAnswersSorted = frequencyOfAnswers.sorted(by:
+{ (pair1, pair2) -> Bool in
+    return pair1.value > pair2.value
+})
+ 
+let mostCommonAnswer = frequentAnswersSorted.first!.key」
+```
 
 「How does this code work exactly? Assume your dictionary looks like the following:」
 
-@@
+```swift
+{
+  cat : 1,
+  dog : 2,
+  rabbit : 1,
+  turtle : 1
+}
+```
 
 「The parameter you pass into sorted\(by:\) is a closure that takes any two key/value pairs. In the animal quiz, pair1 might correspond to cat : 1 and pair2 might be dog : 2. Within the body of the closure, you'll need to return a Boolean value to help the method determine which of the pairs is larger. In the case of return 1 &gt; 2, the Boolean value is false—so the method knows that pair2 is larger than pair1. 」
 
 「When the method is finished, the array frequentAnswersSorted might look something like the code below. For key/value pairs that have the same value, there's no way to rank one over the other—so rabbit, turtle, and cat may be in a different order. But it doesn't matter, since you only care about the first element in the array. 」
 
-@@
+```swift
+[(dog, 2), (rabbit, 1), (turtle, 1), (cat, 1)]
+```
 
 「The closure may be simplified using trailing closure syntax: using $0 and $1 as argument names and removing the implied return. Combined with retrieving the first element's key, you can simplify all of the code onto one line: 」
 
-@@
+```swift
+let mostCommonAnswer = frequencyOfAnswers.sorted { $0.1 >
+$1.1 }.first!.key
+```
 
 ### View the Results
 
 Now all that's left is to update the text of your labels to appropriate values inside calculatePersonalityResult. You'll need to add some outlets in ResultsViewController so that each label's text can be updated in code. Open the assistant editor and Control-drag from each label to a space within the ResultsViewController class definition. Give each label an appropriate name. 」
 
-@@
+```swift
+@IBOutlet weak var resultAnswerLabel: UILabel!
+@IBOutlet weak var resultDefinitionLabel: UILabel! 
+```
 
 「Add the following code at the end of calculatePersonalityResult to update your labels with the data held in mostCommonAnswer: 」
 
-@@
+```swift
+resultAnswerLabel.text = "You are a \
+(mostCommonAnswer.rawValue)!"
+resultDefinitionLabel.text = mostCommonAnswer.definition
+```
 
 「Build and run your app, and you'll finally get to see your quiz results visually. 」
 
 ### Restart the Quiz
 
-
-
-摘錄自: Apple Education. 「App Development with Swift」。 Apple Inc. - Education，2017. iBooks. [https://itunes.apple.com/tw/book/app-development-with-swift/id1219117996?mt=11](https://itunes.apple.com/tw/book/app-development-with-swift/id1219117996?mt=11)
-
-摘錄自: Apple Education. 「App Development with Swift」。 Apple Inc. - Education，2017. iBooks. [https://itunes.apple.com/tw/book/app-development-with-swift/id1219117996?mt=11](https://itunes.apple.com/tw/book/app-development-with-swift/id1219117996?mt=11)
-
-摘錄自: Apple Education. 「App Development with Swift」。 Apple Inc. - Education，2017. iBooks. [https://itunes.apple.com/tw/book/app-development-with-swift/id1219117996?mt=11](https://itunes.apple.com/tw/book/app-development-with-swift/id1219117996?mt=11)
-
-摘錄自: Apple Education. 「App Development with Swift」。 Apple Inc. - Education，2017. iBooks. [https://itunes.apple.com/tw/book/app-development-with-swift/id1219117996?mt=11](https://itunes.apple.com/tw/book/app-development-with-swift/id1219117996?mt=11)
-
-摘錄自: Apple Education. 「App Development with Swift」。 Apple Inc. - Education，2017. iBooks. [https://itunes.apple.com/tw/book/app-development-with-swift/id1219117996?mt=11](https://itunes.apple.com/tw/book/app-development-with-swift/id1219117996?mt=11)
-
-摘錄自: Apple Education. 「App Development with Swift」。 Apple Inc. - Education，2017. iBooks. [https://itunes.apple.com/tw/book/app-development-with-swift/id1219117996?mt=11](https://itunes.apple.com/tw/book/app-development-with-swift/id1219117996?mt=11)
-
-@@
-
 「In most personality quizzes, the player runs through all the questions once and only once. After the results have been displayed, there shouldn't be a way to go back and change previously answered questions to try and achieve a different outcome. Unfortunately, the Back button on the result screen implies that they can do that. To hide the Back button in the navigation bar, add the following line to viewDidLoad\(\): 」
 
-@@
+```swift
+navigationItem.hidesBackButton = true
+```
 
 「Instead of changing previous responses, the player should be able to dismiss the results and start with a clean slate. A tap of the Done button can return to the IntroductionViewController, making it very clear that the quiz is over. But at the moment, the Done button doesn't connect to any sort of action. 」
 
 「You'll need to create an unwind method in the first view controller. Add the following to the IntroductionViewController definition: 」
 
-@@
+
+
+```swift
+@IBAction func unwindToQuizIntroduction(segue:
+UIStoryboardSegue) {
+ 
+}
+```
 
 「Since the app doesn't need to retain or pass back any information when the ResultsViewController is dismissed, you can leave the method body blank. 」
 
