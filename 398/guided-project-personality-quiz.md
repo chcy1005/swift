@@ -252,19 +252,19 @@ Now that you've analyzed which components you'll need, it's probably easier to s
 
 「It's safe to assume that every Question will have text to represent the question itself, along with an array of Answer objects. Since your quiz can use three different types of input methods, you'll create an enum that describes the question's response type: single-answer, multiple-answer, or ranged response. An example of the structure is shown below: 」
 
-`struct Question {` 
+```swift
+struct Question {
+    var text: String
+    var type: ResponseType
+    var answers: [Answer]
+}
+ 
+enum ResponseType {
+    case single, multiple, ranged
+}
+```
 
-    `var text: String` 
-
-    `var type: ResponseType` 
-
-    `var answers: [Answer]` 
-
-`}`
-
-`enum ResponseType { case single, multiple, ranged` 
-
-`}` 
+摘錄自: Apple Education. 「App Development with Swift」。 Apple Inc. - Education，2017. iBooks. https://itunes.apple.com/tw/book/app-development-with-swift/id1219117996?mt=11 
 
 ![](../.gitbook/assets/ying-mu-kuai-zhao-20181009-xia-wu-10.11.40.png)
 
